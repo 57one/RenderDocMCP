@@ -85,51 +85,51 @@ def get_frame_summary() -> dict:
 
 
 @mcp.tool
-def find_draws_by_shader(
-    shader_name: str,
+def find_draws(
+    by: Literal["shader", "texture", "resource"],
+    shader_name: str | None = None,
     stage: Literal["vertex", "hull", "domain", "geometry", "pixel", "compute"] | None = None,
+    texture_name: str | None = None,
+    resource_id: str | None = None,
 ) -> dict:
     """
-    Find all draw calls using a shader with the given name (partial match).
+    Find all draw calls by shader name, texture name, or resource ID.
 
     Args:
-        shader_name: Partial name to search for in shader names or entry points
-        stage: Optional shader stage to search (if not specified, searches all stages)
+        by: Search mode — one of "shader", "texture", or "resource"
+
+        [by="shader"]
+        shader_name: Partial name to search for in shader names or entry points (required)
+        stage: Optional shader stage to filter (vertex/hull/domain/geometry/pixel/compute)
+
+        [by="texture"]
+        texture_name: Partial name to search for in texture resource names (required)
+                      Searches SRVs, UAVs, and render targets.
+
+        [by="resource"]
+        resource_id: Resource ID to search for, exact match (required)
+                     e.g. "ResourceId::12345" or "12345"
+                     Searches shaders, SRVs, UAVs, render targets, and depth targets.
 
     Returns a list of matching draw calls with event IDs and match reasons.
     """
-    params: dict[str, object] = {"shader_name": shader_name}
-    if stage is not None:
-        params["stage"] = stage
-    return bridge.call("find_draws_by_shader", params)
-
-
-@mcp.tool
-def find_draws_by_texture(texture_name: str) -> dict:
-    """
-    Find all draw calls using a texture with the given name (partial match).
-
-    Args:
-        texture_name: Partial name to search for in texture resource names
-
-    Returns a list of matching draw calls with event IDs and match reasons.
-    Searches SRVs, UAVs, and render targets.
-    """
-    return bridge.call("find_draws_by_texture", {"texture_name": texture_name})
-
-
-@mcp.tool
-def find_draws_by_resource(resource_id: str) -> dict:
-    """
-    Find all draw calls using a specific resource ID (exact match).
-
-    Args:
-        resource_id: Resource ID to search for (e.g. "ResourceId::12345" or "12345")
-
-    Returns a list of matching draw calls with event IDs and match reasons.
-    Searches shaders, SRVs, UAVs, render targets, and depth targets.
-    """
-    return bridge.call("find_draws_by_resource", {"resource_id": resource_id})
+    if by == "shader":
+        if shader_name is None:
+            raise ValueError("shader_name is required when by='shader'")
+        params: dict[str, object] = {"shader_name": shader_name}
+        if stage is not None:
+            params["stage"] = stage
+        return bridge.call("find_draws_by_shader", params)
+    elif by == "texture":
+        if texture_name is None:
+            raise ValueError("texture_name is required when by='texture'")
+        return bridge.call("find_draws_by_texture", {"texture_name": texture_name})
+    elif by == "resource":
+        if resource_id is None:
+            raise ValueError("resource_id is required when by='resource'")
+        return bridge.call("find_draws_by_resource", {"resource_id": resource_id})
+    else:
+        raise ValueError("by must be one of: shader, texture, resource")
 
 
 @mcp.tool

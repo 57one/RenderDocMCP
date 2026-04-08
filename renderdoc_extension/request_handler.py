@@ -19,6 +19,7 @@ class RequestHandler:
             "find_draws_by_shader": self._handle_find_draws_by_shader,
             "find_draws_by_texture": self._handle_find_draws_by_texture,
             "find_draws_by_resource": self._handle_find_draws_by_resource,
+            "find_draws": self._handle_find_draws,
             "get_draw_call_details": self._handle_get_draw_call_details,
             "get_action_timings": self._handle_get_action_timings,
             "get_shader_info": self._handle_get_shader_info,
@@ -107,6 +108,28 @@ class RequestHandler:
         if resource_id is None:
             raise ValueError("resource_id is required")
         return self.facade.find_draws_by_resource(resource_id)
+
+    def _handle_find_draws(self, params):
+        """Handle unified find_draws request, dispatching by 'by' parameter"""
+        by = params.get("by")
+        if by == "shader":
+            shader_name = params.get("shader_name")
+            if shader_name is None:
+                raise ValueError("shader_name is required when by='shader'")
+            stage = params.get("stage")
+            return self.facade.find_draws_by_shader(shader_name, stage)
+        elif by == "texture":
+            texture_name = params.get("texture_name")
+            if texture_name is None:
+                raise ValueError("texture_name is required when by='texture'")
+            return self.facade.find_draws_by_texture(texture_name)
+        elif by == "resource":
+            resource_id = params.get("resource_id")
+            if resource_id is None:
+                raise ValueError("resource_id is required when by='resource'")
+            return self.facade.find_draws_by_resource(resource_id)
+        else:
+            raise ValueError("by must be one of: shader, texture, resource")
 
     def _handle_get_draw_call_details(self, params):
         """Handle get_draw_call_details request"""
